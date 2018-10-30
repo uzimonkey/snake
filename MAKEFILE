@@ -1,0 +1,9 @@
+SNAKE.EXE: SNAKE.OBJ
+	LINK $**,$@;
+
+.ASM.OBJ:
+	MASM /t $<
+
+CLEAN:
+	DEL *.OBJ
+	DEL *.EXE
