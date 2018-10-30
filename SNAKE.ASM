@@ -2,18 +2,9 @@
 .MODEL SMALL, STDCALL
 .386
 
+INCLUDE SCREEN.INC
+
 ; Constants
-VID_MEM		EQU	0B800H
-SCREEN_WIDTH	EQU	80
-SCREEN_HEIGHT	EQU	25 * 2
-
-PIXEL_BACKGROUND	EQU	07000H
-PIXEL_FOREGROUND	EQU	00100H
-PIXEL_EMPTY	EQU	00020H OR PIXEL_BACKGROUND OR PIXEL_FOREGROUND
-PIXEL_TOP		EQU	000DFH OR PIXEL_BACKGROUND OR PIXEL_FOREGROUND
-PIXEL_BOTTOM	EQU	000DCH OR PIXEL_BACKGROUND OR PIXEL_FOREGROUND
-PIXEL_FULL	EQU	000DBH OR PIXEL_BACKGROUND OR PIXEL_FOREGROUND
-
 STARTING_SPEED	EQU	10
 
 DELTA_RIGHT	EQU	2
@@ -30,21 +21,13 @@ KEY_DOWN		EQU	050H
 
 ; Variables
 DATA	SEGMENT
-old_mode		DB	0	; VGA mode before set
-
 speed		DW	STARTING_SPEED
 
-snake_x		DW	SCREEN_WIDTH/2
-snake_y		DW	SCREEN_HEIGHT/2
+snake_x		DW	SCR_WIDTH/2
+snake_y		DW	SCR_HEIGHT/2
 snake_dx		DW	1
 snake_dy		DW	0
-
-pixels		DW	PIXEL_TOP, PIXEL_BOTTOM
 DATA	ENDS
-
-
-; Prototypes
-set_pixel		PROTO,	x:WORD, y:WORD
 
 
 ; Code
@@ -53,26 +36,10 @@ CODE	SEGMENT	PUBLIC 'CODE'
 main	PROC	FAR
 	mov	ax, DATA
 	mov	ds, ax
-	mov	ax, VID_MEM	; Text-mode memory
-	mov	es, ax
-
-	mov	ah, 0FH		; Save the video mode
-	int	10H
-	mov	old_mode, al
-
-
-	mov	ax, 00003H	; Set video mode
-	int	10H
-	call	clear_screen
-
-	mov	ah, 02H		; Hide the cursor
-	mov	bh, 0
-	mov	dh, SCREEN_WIDTH+1
-	mov	dl, SCREEN_HEIGHT+1
-	int	10h
+	call	scr_init
 
 @@loop:	mov	cx, ds:[speed]
-@@:	call	vsync
+@@:	call	scr_vsync
 	loop	@b
 
 	; Move the character
@@ -84,7 +51,7 @@ main	PROC	FAR
 	mov	snake_y, ax
 
 	; Display the character
-	INVOKE	set_pixel, snake_x, snake_y
+	; INVOKE	set_pixel, snake_x, snake_y
 
 	call	input
 	jmp	@@loop
@@ -93,13 +60,9 @@ main	ENDP
 
 ; Quit to DOS
 quit	PROC	NEAR
-	mov	ah, 0		; Set old video mode
-	mov	al, old_mode
-	int	10H
-
-
-	mov ah, 04CH		; Exit
-	int 21h
+	call	scr_quit
+	mov	ah, 04CH		; Exit
+	int	21H
 quit	ENDP
 
 
@@ -142,78 +105,6 @@ input	PROC	NEAR
 
 	jmp	input
 input	ENDP
-
-
-; Clear the screen
-clear_screen	PROC	NEAR
-	cld
-	xor	di, di
-	mov	ax, PIXEL_EMPTY
-	mov	cx, SCREEN_WIDTH * SCREEN_HEIGHT
-	rep	stosw
-	ret
-clear_screen	ENDP
-
-
-; Set a virtual pixel on the screen
-set_pixel		PROC NEAR, x: WORD, y: WORD
-	mov	di, y		; di = character offset
-
-	; Select top or bottom pixel
-	mov	bx, di
-	and	bx, 001H
-	shl	bx, 1
-	mov	ax, pixels[bx]	; ax = pixel character we want to draw
-
-	; Also get the opposite pixel
-	shr	bx, 1
-	xor	bx, 1
-	shl	bx, 1
-	mov	cx, pixels[bx]	; cx = opposite character
-
-	; Calculate offset
-	shr	di, 1		; Divide di by 2 to account for double rows
-	imul	di, SCREEN_WIDTH	; Multiply by screen width
-	add	di, x		; Add x
-	shl	di, 1		; Multiply by 2 for attribute/char pairs
-
-	; Get pixel currently on screen
-	mov	dx, es:[di]	; dx = pixel on screen
-
-	; If it's already full or the pixel we want to draw, do nothing
-	cmp	ax, dx
-	jnz @f
-	ret
-@@:	cmp	dx, PIXEL_FULL
-	jnz @f
-	ret
-
-	; If it's opposite pixel, we need to draw a full pixel
-@@:	cmp	dx, cx
-	jne	@f
-	mov	ax, PIXEL_FULL
-
-	; Draw the pixel
-@@:	mov	es:[di], ax
-
-	ret
-set_pixel		ENDP
-
-
-; Wait for vsync
-vsync		PROC	NEAR
-	mov	dx, 003DAH
- 
-@@:	in	al, dx		; Wait until out of vertical sync
-	and	al, 008H
-	jnz	@b
-
-@@:	in	al, dx		; Wait until vertical sync starts
-	and	al, 008H
-	jz	@b
-
-	ret
-vsync	ENDP
 CODE	ENDS
 
 STACK	SEGMENT	PARA STACK 'STACK'

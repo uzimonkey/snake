@@ -1,5 +1,5 @@
-SNAKE.EXE: SNAKE.OBJ
-	LINK $**,$@;
+SNAKE.EXE: SNAKE.OBJ SCREEN.OBJ
+	LINK $**, $@;
 
 .ASM.OBJ:
 	MASM /t $<
