@@ -1,3 +1,4 @@
+; ex: set tabstop=10
 .MODEL SMALL
 .386
 
@@ -6,8 +7,10 @@ VID_MEM		EQU	0B800H
 SCREEN_WIDTH	EQU	80
 SCREEN_HEIGHT	EQU	25
 
-EMPTY_PIXEL	EQU	00000H
-SNAKE_PIXEL	EQU	07020H
+PIXEL_EMPTY	EQU	0e420H
+PIXEL_TOP		EQU	04ADFH
+PIXEL_BOTTOM	EQU	04ADCH
+PIXEL_FULL	EQU	04ADBH
 
 STARTING_SPEED	EQU	10
 
@@ -64,7 +67,7 @@ main	PROC	FAR
 	mov	snake_offset, bx
 
 	; Display the character
-	mov	WORD PTR es:[bx], SNAKE_PIXEL
+	; mov	WORD PTR es:[bx], SNAKE_PIXEL
 
 	call	input
 	jmp	@@loop
@@ -120,7 +123,7 @@ input	ENDP
 clear_screen	PROC	NEAR
 	cld
 	xor	di, di
-	mov	ax, EMPTY_PIXEL
+	mov	ax, PIXEL_EMPTY
 	mov	cx, SCREEN_WIDTH * SCREEN_HEIGHT
 	rep	stosw
 	ret
