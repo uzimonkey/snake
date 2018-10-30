@@ -34,8 +34,10 @@ old_mode		DB	0	; VGA mode before set
 
 speed		DW	STARTING_SPEED
 
-snake_offset	DW	((SCREEN_HEIGHT/2) * SCREEN_WIDTH + SCREEN_WIDTH/2) * 2
-snake_move	DW	2
+snake_x		DW	SCREEN_WIDTH/2
+snake_y		DW	SCREEN_HEIGHT/2
+snake_dx		DW	2
+snake_dy		DW	0
 
 pixels		DW	PIXEL_TOP, PIXEL_BOTTOM
 DATA	ENDS
@@ -62,8 +64,6 @@ main	PROC	FAR
 	mov	ax, 00003H	; Set video mode
 	int	10H
 	call	clear_screen
-	INVOKE	set_pixel, 0, 0
-	INVOKE	set_pixel, 1, 1
 
 	mov	ah, 02H		; Hide the cursor
 	mov	bh, 0
@@ -76,12 +76,16 @@ main	PROC	FAR
 	loop	@b
 
 	; Move the character
-	mov	bx, snake_offset
-	add	bx, snake_move
-	mov	snake_offset, bx
+	mov	ax, snake_x
+	add	ax, snake_dx
+	mov	snake_x, ax
+	mov	ax, snake_y
+	add	ax, snake_dy
+	mov	snake_y, ax
 
 	; Display the character
 	; mov	WORD PTR es:[bx], SNAKE_PIXEL
+	INVOKE	set_pixel, snake_x, snake_y
 
 	call	input
 	jmp	@@loop
@@ -116,22 +120,26 @@ input	PROC	NEAR
 
 @@:	cmp	ah, KEY_RIGHT
 	jnz	@f
-	mov	snake_move, DELTA_RIGHT
+	mov	snake_dx, 1
+	mov	snake_dy, 0
 	jmp	input
 
 @@:	cmp	ah, KEY_LEFT
 	jnz	@f
-	mov	snake_move, DELTA_LEFT
+	mov	snake_dx, -1
+	mov	snake_dy, 0
 	jmp	input
 
 @@:	cmp	ah, KEY_UP
 	jnz	@f
-	mov	snake_move, DELTA_UP
+	mov	snake_dy, -1
+	mov	snake_dx, 0
 	jmp	input
 
 @@:	cmp	ah, KEY_DOWN
 	jnz	input
-	mov	snake_move, DELTA_DOWN
+	mov	snake_dy, 1
+	mov	snake_dx, 0
 
 	jmp	input
 input	ENDP
