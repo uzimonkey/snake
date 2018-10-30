@@ -36,7 +36,7 @@ speed		DW	STARTING_SPEED
 
 snake_x		DW	SCREEN_WIDTH/2
 snake_y		DW	SCREEN_HEIGHT/2
-snake_dx		DW	2
+snake_dx		DW	1
 snake_dy		DW	0
 
 pixels		DW	PIXEL_TOP, PIXEL_BOTTOM
@@ -84,7 +84,6 @@ main	PROC	FAR
 	mov	snake_y, ax
 
 	; Display the character
-	; mov	WORD PTR es:[bx], SNAKE_PIXEL
 	INVOKE	set_pixel, snake_x, snake_y
 
 	call	input
@@ -158,22 +157,46 @@ clear_screen	ENDP
 
 ; Set a virtual pixel on the screen
 set_pixel		PROC NEAR, x: WORD, y: WORD
-        mov	di, y
+	mov	di, y		; di = character offset
 
-        ; Select top or bottom pixel
-        mov	bx, di
-        and	bx, 001H
-        shl	bx, 1
-        mov	ax, pixels[bx]
+	; Select top or bottom pixel
+	mov	bx, di
+	and	bx, 001H
+	shl	bx, 1
+	mov	ax, pixels[bx]	; ax = pixel character we want to draw
 
-        ; Calculate offset and draw pixel
-        shr	di, 1		; Divide di by 2 to account for double rows
-        imul	di, SCREEN_WIDTH	; Multiply by screen width
-        add	di, x		; Add x
-        shl	di, 1		; Multiply by 2 for attribute/char pairs
-        mov	es:[di], ax
+	; Also get the opposite pixel
+	shr	bx, 1
+	xor	bx, 1
+	shl	bx, 1
+	mov	cx, pixels[bx]	; cx = opposite character
 
-        ret
+	; Calculate offset
+	shr	di, 1		; Divide di by 2 to account for double rows
+	imul	di, SCREEN_WIDTH	; Multiply by screen width
+	add	di, x		; Add x
+	shl	di, 1		; Multiply by 2 for attribute/char pairs
+
+	; Get pixel currently on screen
+	mov	dx, es:[di]	; dx = pixel on screen
+
+	; If it's already full or the pixel we want to draw, do nothing
+	cmp	ax, dx
+	jnz @f
+	ret
+@@:	cmp	dx, PIXEL_FULL
+	jnz @f
+	ret
+
+	; If it's opposite pixel, we need to draw a full pixel
+@@:	cmp	dx, cx
+	jne	@f
+	mov	ax, PIXEL_FULL
+
+	; Draw the pixel
+@@:	mov	es:[di], ax
+
+	ret
 set_pixel		ENDP
 
 
