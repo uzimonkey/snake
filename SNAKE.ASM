@@ -1,16 +1,18 @@
 ; ex: set tabstop=10
-.MODEL SMALL
+.MODEL SMALL, STDCALL
 .386
 
 ; Constants
 VID_MEM		EQU	0B800H
 SCREEN_WIDTH	EQU	80
-SCREEN_HEIGHT	EQU	25
+SCREEN_HEIGHT	EQU	25 * 2
 
-PIXEL_EMPTY	EQU	0e420H
-PIXEL_TOP		EQU	04ADFH
-PIXEL_BOTTOM	EQU	04ADCH
-PIXEL_FULL	EQU	04ADBH
+PIXEL_BACKGROUND	EQU	07000H
+PIXEL_FOREGROUND	EQU	00100H
+PIXEL_EMPTY	EQU	00020H OR PIXEL_BACKGROUND OR PIXEL_FOREGROUND
+PIXEL_TOP		EQU	000DFH OR PIXEL_BACKGROUND OR PIXEL_FOREGROUND
+PIXEL_BOTTOM	EQU	000DCH OR PIXEL_BACKGROUND OR PIXEL_FOREGROUND
+PIXEL_FULL	EQU	000DBH OR PIXEL_BACKGROUND OR PIXEL_FOREGROUND
 
 STARTING_SPEED	EQU	10
 
@@ -25,13 +27,23 @@ KEY_LEFT		EQU	04BH
 KEY_UP		EQU	048H
 KEY_DOWN		EQU	050H
 
+
 ; Variables
 DATA	SEGMENT
-old_mode		DB	0
+old_mode		DB	0	; VGA mode before set
+
 speed		DW	STARTING_SPEED
+
 snake_offset	DW	((SCREEN_HEIGHT/2) * SCREEN_WIDTH + SCREEN_WIDTH/2) * 2
 snake_move	DW	2
+
+pixels		DW	PIXEL_TOP, PIXEL_BOTTOM
 DATA	ENDS
+
+
+; Prototypes
+set_pixel		PROTO,	x:WORD, y:WORD
+
 
 ; Code
 CODE	SEGMENT	PUBLIC 'CODE'
@@ -50,6 +62,8 @@ main	PROC	FAR
 	mov	ax, 00003H	; Set video mode
 	int	10H
 	call	clear_screen
+	INVOKE	set_pixel, 0, 0
+	INVOKE	set_pixel, 1, 1
 
 	mov	ah, 02H		; Hide the cursor
 	mov	bh, 0
@@ -74,6 +88,7 @@ main	PROC	FAR
 main	ENDP
 
 
+; Quit to DOS
 quit	PROC	NEAR
 	mov	ah, 0		; Set old video mode
 	mov	al, old_mode
@@ -85,6 +100,7 @@ quit	PROC	NEAR
 quit	ENDP
 
 
+; Handle input
 input	PROC	NEAR
 	mov	ah, 001H		; Check for key
 	int	16H
@@ -120,6 +136,8 @@ input	PROC	NEAR
 	jmp	input
 input	ENDP
 
+
+; Clear the screen
 clear_screen	PROC	NEAR
 	cld
 	xor	di, di
@@ -129,6 +147,29 @@ clear_screen	PROC	NEAR
 	ret
 clear_screen	ENDP
 
+
+; Set a virtual pixel on the screen
+set_pixel		PROC NEAR, x: WORD, y: WORD
+        mov	di, y
+
+        ; Select top or bottom pixel
+        mov	bx, di
+        and	bx, 001H
+        shl	bx, 1
+        mov	ax, pixels[bx]
+
+        ; Calculate offset and draw pixel
+        shr	di, 1		; Divide di by 2 to account for double rows
+        imul	di, SCREEN_WIDTH	; Multiply by screen width
+        add	di, x		; Add x
+        shl	di, 1		; Multiply by 2 for attribute/char pairs
+        mov	es:[di], ax
+
+        ret
+set_pixel		ENDP
+
+
+; Wait for vsync
 vsync		PROC	NEAR
 	mov	dx, 003DAH
  
