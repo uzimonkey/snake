@@ -5,7 +5,7 @@
 INCLUDE SCREEN.INC
 
 ; Constants
-STARTING_SPEED	EQU	10
+STARTING_SPEED	EQU	5
 
 DELTA_RIGHT	EQU	2
 DELTA_LEFT	EQU	-2
@@ -51,7 +51,7 @@ main	PROC	FAR
 	mov	snake_y, ax
 
 	; Display the character
-	; INVOKE	set_pixel, snake_x, snake_y
+	INVOKE	scr_set, snake_x, snake_y
 
 	call	input
 	jmp	@@loop

@@ -68,12 +68,12 @@ scr_clear	PROC NEAR
 	cld
 	mov	di, OFFSET scr_back
 	xor	ax, ax
-	mov	cx, (SCR_WIDTH * SCR_HEIGHT) / 4	; Doing this by words, so divide by 2 again
+	mov	cx, (SCR_WIDTH * SCR_HEIGHT) / 2	; Doing this by words, so divide by 2
 	rep	stosw
 
 	; Clear the screen
 	xor	di, di
-	mov	ax, scr_chars + 4
+	mov	ax, scr_chars
 	mov	cx, SCR_WIDTH * SCR_HEIGHT
 	rep	stosw
 
@@ -94,9 +94,47 @@ scr_vsync	PROC NEAR
 	ret
 scr_vsync	ENDP
 
-; scr_set	PROC NEAR, x:BYTE, y:BYTE
-; 	ret
-; scr_set	ENDP
+scr_set	PROC NEAR, x:WORD, y:WORD
+	mov	si, y		; y
+	shr	si, 2		; / 4
+	imul	si, SCR_WIDTH	; * width
+	add	si, x		; + x
+	xor	bx, bx		; bx = 0
+	mov	bl, scr_back[si]	; si = back buffer offset
+
+	mov	al, 00111111B	; al = inverse mask
+	mov	ah, 01000000B	; ah = value
+	mov	cl, 4		; cl = after shifter
+
+	bt	y, 1		; if y&2
+	jnc	@f
+	mov	cl, 0		; already in lowest nibble
+	ror	al, 4
+	ror	ah, 4
+
+@@:	bt	y, 0		; if y&1
+	jnc	@f
+	ror	al, 2		; we want lower 2 bits of nibble
+	ror	ah, 2
+
+@@:	and	bl, al		; clear nibble
+	or	bl, ah		; set nibble
+	mov	scr_back[si], bl	; store in back buffer
+
+	shr	bl, cl		; shift nibble into least significant bits
+	and	bl, 00FH		; get rid of most significant nibble
+	shl	bl, 1		; multiply by 2, we're addressing words
+	mov	ax, scr_chars[bx]	; get screen char
+
+	mov	di, y
+	shr	di, 1
+	imul	di, SCR_WIDTH
+	add	di, x
+	shl	di, 1		; * 2
+	mov	es:[di], ax	; display
+
+	ret
+scr_set	ENDP
 CODE	ENDS
 
 END

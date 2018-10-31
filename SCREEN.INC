@@ -32,6 +32,9 @@ DATA	ENDS
 CODE	SEGMENT PUBLIC 'CODE'
 scr_init		PROTO NEAR
 scr_quit		PROTO NEAR
+
 scr_clear		PROTO NEAR
 scr_vsync		PROTO NEAR
+
+scr_set		PROTO NEAR, x:WORD, y:WORD
 CODE	ENDS
