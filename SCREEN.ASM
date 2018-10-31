@@ -14,7 +14,7 @@ scr_chars	DW	(SCR_BACKGND SHL 12) OR (SCR_BACKGND SHL 8) OR SCR_PIX_BLANK		; 00
 		DW	(SCR_FORE2 SHL 12) OR (SCR_FORE1 SHL 8) OR SCR_PIX_UPPER		; 12
 		DW	0									; 13
 		DW	(SCR_BACKGND SHL 12) OR (SCR_FORE2 SHL 8) OR SCR_PIX_UPPER		; 20
-		DW	(SCR_FORE1 SHL 12) OR (SCR_FORE2 SHL 8) OR SCR_PIX_UPPER		; 21
+		DW	(SCR_FORE2 SHL 12) OR (SCR_FORE1 SHL 8) OR SCR_PIX_LOWER		; 21
 		DW	(SCR_BACKGND SHL 12) OR (SCR_FORE2 SHL 8) OR SCR_PIX_FULL		; 22
 		DW	0									; 23
 		DW	0									; 30
@@ -95,7 +95,7 @@ scr_vsync	PROC NEAR
 scr_vsync	ENDP
 
 
-scr_set		PROC NEAR, x:WORD, y:WORD
+scr_set		PROC NEAR, x:WORD, y:WORD, color:BYTE
 		mov	si, y			; y
 		shr	si, 2			; / 4
 		imul	si, SCR_WIDTH		; * width
@@ -104,7 +104,8 @@ scr_set		PROC NEAR, x:WORD, y:WORD
 		mov	bl, scr_back[si]	; si = back buffer offset
 
 		mov	al, 00111111B		; al = inverse mask
-		mov	ah, 01000000B		; ah = 	value
+		mov	ah, color
+		; mov	ah, 01000000B		; ah = 	value
 		mov	cl, 4			; cl = after shifter
 
 		bt	y, 1			; if y&2

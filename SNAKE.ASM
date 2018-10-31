@@ -50,7 +50,7 @@ main		PROC	FAR
 		mov	snake_y, ax
 
 		; Display the character
-		INVOKE	scr_set, snake_x, snake_y
+		INVOKE	scr_set, snake_x, snake_y, SCR_COLOR1
 
 		call	input
 		jmp	@@loop
