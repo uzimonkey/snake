@@ -4,7 +4,7 @@
 INCLUDE SCREEN.INC
 
 DATA		SEGMENT PUBLIC 'DATA'
-scr_back	DB	(SCR_WIDTH * SCR_HEIGHT) / 2 DUP(0)
+scr_back	DB	(SCR_WIDTH * SCR_HEIGHT) / 4 DUP(0)
 scr_chars	DW	(SCR_BACKGND SHL 12) OR (SCR_BACKGND SHL 8) OR SCR_PIX_BLANK		; 00
 		DW	(SCR_BACKGND SHL 12) OR (SCR_FORE1 SHL 8) OR SCR_PIX_LOWER		; 01
 		DW	(SCR_BACKGND SHL 12) OR (SCR_FORE2 SHL 8) OR SCR_PIX_LOWER		; 02
@@ -104,8 +104,7 @@ scr_set		PROC NEAR, x:WORD, y:WORD, color:BYTE
 		mov	bl, scr_back[si]	; si = back buffer offset
 
 		mov	al, 00111111B		; al = inverse mask
-		mov	ah, color
-		; mov	ah, 01000000B		; ah = 	value
+		mov	ah, color		; ah = value
 		mov	cl, 4			; cl = after shifter
 
 		bt	y, 1			; if y&2
