@@ -87,9 +87,12 @@ scr_vsync	PROC NEAR
 scr_vsync	ENDP
 
 
-scr_set		PROC NEAR, x:BYTE, y:BYTE, color:BYTE
-		pusha
-
+; cx = x
+; dx = y
+; si = offset
+; ax = char
+; bx = pixels
+_get		MACRO
 		movzx	cx, x			; cx = x
 		movzx	dx, y			; dx = y
 
@@ -101,13 +104,6 @@ scr_set		PROC NEAR, x:BYTE, y:BYTE, color:BYTE
 		shl	si, 1
 		mov	ax, es:[si]		; read screen char
 
-		bt	dx, 0			; odd row?
-		mov	dh, 11111100B		; dh = inverse mask
-		mov	dl, color		; dl = color
-		jnc	@f
-		rol	dh, 2
-		rol	dl, 2
-
 @@:		mov	cx, 16			; max 16 screen chars
 		xor	bx, bx			; bx = character offset
 @@:		cmp	ax, scr_chars[bx]	; is this it?
@@ -117,7 +113,21 @@ scr_set		PROC NEAR, x:BYTE, y:BYTE, color:BYTE
 		xor	bx, bx			; it was invalid, call it empty
 
 @@:		shr	bx, 1			; convert from offset back to packed pixel
-		and	bl, dh			; clear the bits
+ENDM
+
+
+scr_set		PROC NEAR, x:BYTE, y:BYTE, color:BYTE
+		pusha
+		_get
+
+		bt	dx, 0			; odd row?
+		mov	dh, 11111100B		; dh = inverse mask
+		mov	dl, color		; dl = color
+		jnc	@f
+		rol	dh, 2
+		rol	dl, 2
+
+@@:		and	bl, dh			; clear the bits
 		or	bl, dl			; set new bits
 		shl	bx, 1			; bx *= 2, we're addressing words
 		mov	ax, scr_chars[bx]	; get new screen char
@@ -126,6 +136,13 @@ scr_set		PROC NEAR, x:BYTE, y:BYTE, color:BYTE
 		popa
 		ret
 scr_set		ENDP
+
+
+scr_get		PROC NEAR, x:BYTE, y:BYTE
+		_get
+		mov	ax, bx
+		ret
+scr_get		ENDP
 
 
 scr_line	PROC NEAR, x1:BYTE, y1:BYTE, x2:BYTE, y2:BYTE, color:BYTE
