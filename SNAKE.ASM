@@ -31,30 +31,30 @@ snake_dy	DB	0
 
 
 ; Levels
-level1		DB	 0,  0,  0, 79
+level1		DB	 0,  0, 79,  0
 		DB	 0,  1,  0, 48
-		DB	79, 01, 79, 48
+		DB	79,  1, 79, 48
 		DB	 0, 49, 79, 49
-level1_len	DW	$ - level1
+		DB	255
 
-levels		DW	level1, level1_len
-num_levels	DW	($ - levels) / 4
+levels		DW	OFFSET level1
+num_levels	DW	($ - levels) / 2
 DATA		ENDS
 
 ; Code
 CODE		SEGMENT	PUBLIC 'CODE'
 		ASSUME	cs:CODE, ds:DATA, ss:STACK
 
-load_level	PROTO NEAR, level:WORD, level_len:WORD
+load_level	PROTO NEAR, level:BYTE
 
 main		PROC	FAR
 		mov	ax, DATA
 		mov	ds, ax
-		call	scr_init
+		INVOKE	scr_init
 
-		; INVOKE	load_level, OFFSET level1
+		INVOKE	load_level, 0
 
-@@loop:		mov	cx, ds:[speed]
+main_loop:	mov	cx, speed
 @@:		call	scr_vsync
 		loop	@b
 
@@ -68,12 +68,36 @@ main		PROC	FAR
 		INVOKE	scr_set, snake_x, snake_y, SCR_COLOR1
 
 		call	input
-		jmp	@@loop
+		jmp	main_loop
 main		ENDP
 
 
-load_level	PROC NEAR level:WORD, level_len:WORD
-		ret
+load_level	PROC NEAR level:BYTE
+		movzx	si, level
+		shl	si, 1		; indexing words
+		mov	si, levels[si]	; get offset of level data
+
+next_line:	mov	ch, [si + 0]	; ch = x1
+		cmp	ch, 255
+		je	done
+
+		mov	cl, [si + 1]	; cl = y1
+		mov	bh, [si + 2]	; bh = x2
+		mov	bl, [si + 3]	; bl = y2
+		add	si, 4
+
+next_pixel:	INVOKE	scr_set, ch, cl, SCR_COLOR2
+		cmp	cx, bx
+		je	next_line
+		cmp	ch, bh
+		jge	@f
+		inc	ch
+@@:		cmp	cl, bl
+		jge	@f
+		inc	cl	
+@@:		jmp	next_pixel	
+
+done:		ret
 load_level	ENDP
 
 

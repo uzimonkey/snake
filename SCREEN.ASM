@@ -88,6 +88,8 @@ scr_vsync	ENDP
 
 
 scr_set		PROC NEAR, x:BYTE, y:BYTE, color:BYTE
+		pusha
+
 		movzx	cx, x			; cx = x
 		movzx	dx, y			; dx = y
 
@@ -110,7 +112,7 @@ scr_set		PROC NEAR, x:BYTE, y:BYTE, color:BYTE
 		xor	bx, bx			; bx = character offset
 @@:		cmp	ax, scr_chars[bx]	; is this it?
 		je	@f
-		inc	bx
+		add	bx, 2
 		loop	@b
 		xor	bx, bx			; it was invalid, call it empty
 
@@ -121,6 +123,7 @@ scr_set		PROC NEAR, x:BYTE, y:BYTE, color:BYTE
 		mov	ax, scr_chars[bx]	; get new screen char
 		mov	es:[si], ax		; display it
 
+		popa
 		ret
 scr_set		ENDP
 
